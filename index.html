@@ -57,6 +57,12 @@
     flex-shrink: 0;
   }
   header h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.4px; }
+  #active-preset-name {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    letter-spacing: 0.2px;
+  }
   #btn-settings {
     background: none; border: none; color: var(--text); cursor: pointer;
     width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
@@ -387,7 +393,10 @@
 <body>
 <div id="app">
   <header>
-    <h1>인터벌 타이머</h1>
+    <div>
+      <h1>인터벌 타이머</h1>
+      <div id="active-preset-name"></div>
+    </div>
     <button id="btn-settings" aria-label="설정">⚙️</button>
   </header>
 
@@ -414,11 +423,11 @@
   <div class="modal-title">타이머 설정</div>
 
   <div class="setting-row">
-    <div><div class="setting-label">준비 시간</div><div class="setting-sub">운동 시작 전 준비</div></div>
+    <div><div class="setting-label">준비 시간</div><div class="setting-sub">행동 시작 전 준비</div></div>
     <div class="stepper" data-key="prepare" data-min="3" data-max="60" data-step="1" data-unit="s"></div>
   </div>
   <div class="setting-row">
-    <div><div class="setting-label">운동 시간</div><div class="setting-sub">세트당 운동 시간</div></div>
+    <div><div class="setting-label">행동 시간</div><div class="setting-sub">세트당 행동 시간</div></div>
     <div class="stepper" data-key="work" data-min="5" data-max="300" data-step="5" data-unit="s"></div>
   </div>
   <div class="setting-row">
@@ -496,8 +505,13 @@ function savePresets(list) {
   localStorage.setItem('itPresets', JSON.stringify(list));
 }
 
+function setActivePresetName(name) {
+  const el = document.getElementById('active-preset-name');
+  el.textContent = name || '';
+}
+
 function presetDesc(s) {
-  return `운동 ${formatTime(s.work)} · 휴식 ${formatTime(s.rest)} · ${s.sets}세트 × ${s.rounds}라운드`;
+  return `행동 ${formatTime(s.work)} · 휴식 ${formatTime(s.rest)} · ${s.sets}세트 × ${s.rounds}라운드`;
 }
 
 function renderPresets() {
@@ -523,6 +537,7 @@ function renderPresets() {
       const { name, ...s } = p;
       Object.assign(settings, s);
       saveSettings(settings);
+      setActivePresetName(name);
       updateAllSteppers();
       renderPresets();
     });
@@ -622,7 +637,7 @@ const PHASE_COLORS = {
 const PHASE_LABELS = {
   [PHASES.IDLE]: '준비',
   [PHASES.PREPARE]: '준비',
-  [PHASES.WORK]: '운동',
+  [PHASES.WORK]: '행동',
   [PHASES.REST]: '휴식',
   [PHASES.ROUND_REST]: '라운드 휴식',
   [PHASES.DONE]: '완료',
