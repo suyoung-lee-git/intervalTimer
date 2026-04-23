@@ -57,6 +57,7 @@
     flex-shrink: 0;
   }
   header h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.4px; }
+  #active-preset-name { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
   #btn-settings {
     background: none; border: none; color: var(--text); cursor: pointer;
     width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
@@ -387,7 +388,10 @@
 <body>
 <div id="app">
   <header>
-    <h1>인터벌 타이머</h1>
+    <div>
+      <h1>인터벌 타이머</h1>
+      <div id="active-preset-name"></div>
+    </div>
     <button id="btn-settings" aria-label="설정">⚙️</button>
   </header>
 
@@ -498,6 +502,7 @@ function savePresets(list) {
 
 function setActivePresetName(name) {
   PHASE_LABELS[PHASES.WORK] = name || '운동';
+  document.getElementById('active-preset-name').textContent = name || '';
 }
 
 function presetDesc(s) {
