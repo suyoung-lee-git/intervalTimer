@@ -823,12 +823,12 @@ function render() {
 
   if (p === PHASES.IDLE) {
     elTimeDisplay.textContent = formatTime(s.prepare);
-    elSetInfo.textContent = `${s.sets} 세트`;
+    elSetInfo.textContent = s.sets > 1 ? `${s.sets} 세트` : '';
     elRoundInfo.textContent = `${s.rounds} 라운드`;
     elProgressFill.style.width = '0%';
   } else if (p !== PHASES.DONE) {
     elTimeDisplay.textContent = formatTime(timer.remaining);
-    elSetInfo.textContent = `세트 ${timer.currentSet || '—'} / ${s.sets}`;
+    elSetInfo.textContent = s.sets > 1 ? `세트 ${timer.currentSet || '—'} / ${s.sets}` : '';
     elRoundInfo.textContent = `라운드 ${timer.currentRound} / ${s.rounds}`;
     const pct = timer.phaseDuration > 0
       ? (1 - timer.remaining / timer.phaseDuration) * 100
