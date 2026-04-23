@@ -256,6 +256,108 @@
     cursor: pointer;
   }
 
+  /* PRESETS */
+  .preset-section {
+    margin-top: 24px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding-top: 20px;
+  }
+  .preset-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .preset-section-title { font-size: 15px; font-weight: 700; }
+  #btn-save-preset {
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #btn-save-preset:active { background: rgba(255,255,255,0.2); }
+  #preset-list { display: flex; flex-direction: column; gap: 8px; }
+  .preset-item {
+    display: flex;
+    align-items: center;
+    background: rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 10px 12px;
+    gap: 10px;
+  }
+  .preset-item.active { background: rgba(255,255,255,0.14); }
+  .preset-info { flex: 1; min-width: 0; }
+  .preset-name {
+    font-size: 15px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .preset-desc { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+  .preset-apply {
+    background: rgba(255,255,255,0.12);
+    border: none; color: var(--text);
+    font-size: 13px; font-weight: 600;
+    padding: 6px 12px; border-radius: 8px;
+    cursor: pointer; flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .preset-apply:active { background: rgba(255,255,255,0.25); }
+  .preset-delete {
+    background: none; border: none;
+    color: rgba(255,255,255,0.35);
+    font-size: 18px; line-height: 1;
+    cursor: pointer; padding: 4px;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .preset-delete:active { color: var(--color-work); }
+  .preset-empty {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-secondary);
+    padding: 16px 0;
+  }
+
+  /* NAME INPUT OVERLAY */
+  #name-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 200;
+    display: flex; align-items: flex-end;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  #name-overlay.open { opacity: 1; pointer-events: all; }
+  #name-box {
+    width: 100%;
+    background: #2C2C2E;
+    border-radius: 20px 20px 0 0;
+    padding: 24px 20px max(20px, var(--safe-bottom));
+  }
+  #name-box h3 { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+  #preset-name-input {
+    width: 100%; height: 48px;
+    background: rgba(255,255,255,0.08);
+    border: none; border-radius: 12px;
+    color: var(--text); font-size: 16px;
+    padding: 0 14px; margin-bottom: 12px;
+  }
+  #preset-name-input:focus { outline: 2px solid rgba(255,255,255,0.25); }
+  .name-box-btns { display: flex; gap: 8px; }
+  .name-box-btns button {
+    flex: 1; height: 48px; border-radius: 12px;
+    border: none; font-size: 16px; font-weight: 600; cursor: pointer;
+  }
+  #btn-name-cancel { background: rgba(255,255,255,0.1); color: var(--text); }
+  #btn-name-confirm { background: var(--color-work); color: #fff; }
+
   /* DONE STATE */
   #done-overlay {
     position: fixed; inset: 0;
@@ -336,7 +438,27 @@
     <div class="stepper" data-key="roundRest" data-min="0" data-max="300" data-step="5" data-unit="s"></div>
   </div>
 
+  <div class="preset-section">
+    <div class="preset-section-header">
+      <span class="preset-section-title">프리셋</span>
+      <button id="btn-save-preset">+ 저장</button>
+    </div>
+    <div id="preset-list"></div>
+  </div>
+
   <button id="btn-modal-close">완료</button>
+</div>
+
+<!-- Preset name input overlay -->
+<div id="name-overlay">
+  <div id="name-box">
+    <h3>프리셋 이름</h3>
+    <input id="preset-name-input" type="text" maxlength="20" placeholder="예) 타바타, 웜업...">
+    <div class="name-box-btns">
+      <button id="btn-name-cancel">취소</button>
+      <button id="btn-name-confirm">저장</button>
+    </div>
+  </div>
 </div>
 
 <!-- Done overlay -->
@@ -365,6 +487,62 @@ function saveSettings(s) {
 }
 
 let settings = loadSettings();
+
+// ── PRESETS ──────────────────────────────────────────────────────────
+function loadPresets() {
+  try { return JSON.parse(localStorage.getItem('itPresets') || '[]'); } catch { return []; }
+}
+function savePresets(list) {
+  localStorage.setItem('itPresets', JSON.stringify(list));
+}
+
+function presetDesc(s) {
+  return `운동 ${formatTime(s.work)} · 휴식 ${formatTime(s.rest)} · ${s.sets}세트 × ${s.rounds}라운드`;
+}
+
+function renderPresets() {
+  const list = loadPresets();
+  const el = document.getElementById('preset-list');
+  if (list.length === 0) {
+    el.innerHTML = '<div class="preset-empty">저장된 프리셋이 없습니다</div>';
+    return;
+  }
+  el.innerHTML = '';
+  list.forEach((p, i) => {
+    const item = document.createElement('div');
+    item.className = 'preset-item';
+
+    const info = document.createElement('div');
+    info.className = 'preset-info';
+    info.innerHTML = `<div class="preset-name">${p.name}</div><div class="preset-desc">${presetDesc(p)}</div>`;
+
+    const applyBtn = document.createElement('button');
+    applyBtn.className = 'preset-apply';
+    applyBtn.textContent = '적용';
+    applyBtn.addEventListener('click', () => {
+      const { name, ...s } = p;
+      Object.assign(settings, s);
+      saveSettings(settings);
+      updateAllSteppers();
+      renderPresets();
+    });
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'preset-delete';
+    delBtn.textContent = '✕';
+    delBtn.addEventListener('click', () => {
+      const updated = loadPresets();
+      updated.splice(i, 1);
+      savePresets(updated);
+      renderPresets();
+    });
+
+    item.appendChild(info);
+    item.appendChild(applyBtn);
+    item.appendChild(delBtn);
+    el.appendChild(item);
+  });
+}
 
 // ── AUDIO ────────────────────────────────────────────────────────────
 let audioCtx = null;
@@ -681,6 +859,7 @@ function openModal() {
   if (timer.running) { timer.running = false; cancelAnimationFrame(timer.raf); releaseWakeLock(); render(); }
   elModal.classList.add('open');
   elModalOverlay.classList.add('open');
+  renderPresets();
 }
 function closeModal() {
   elModal.classList.remove('open');
@@ -694,6 +873,8 @@ document.getElementById('btn-modal-close').addEventListener('click', closeModal)
 elModalOverlay.addEventListener('click', closeModal);
 
 // Build steppers
+const stepperUpdaters = {};
+
 document.querySelectorAll('.stepper').forEach(el => {
   const key = el.dataset.key;
   const min = Number(el.dataset.min);
@@ -721,6 +902,7 @@ document.querySelectorAll('.stepper').forEach(el => {
     const v = settings[key];
     valEl.value = unit === 's' ? formatTime(v) : `${v}${unit}`;
   }
+  stepperUpdaters[key] = updateDisplay;
 
   minus.addEventListener('click', () => {
     settings[key] = Math.max(min, settings[key] - step);
@@ -731,7 +913,6 @@ document.querySelectorAll('.stepper').forEach(el => {
     updateDisplay();
   });
 
-  // tap on value → inline edit
   function activateEdit() {
     valEl.readOnly = false;
     valEl.value = String(settings[key]);
@@ -757,6 +938,39 @@ document.querySelectorAll('.stepper').forEach(el => {
   el.appendChild(valEl);
   el.appendChild(plus);
   updateDisplay();
+});
+
+function updateAllSteppers() {
+  Object.values(stepperUpdaters).forEach(fn => fn());
+  render();
+}
+
+// ── PRESET EVENTS ─────────────────────────────────────────────────────
+const elNameOverlay = document.getElementById('name-overlay');
+const elPresetNameInput = document.getElementById('preset-name-input');
+
+function openNameOverlay() {
+  elPresetNameInput.value = '';
+  elNameOverlay.classList.add('open');
+  setTimeout(() => elPresetNameInput.focus(), 100);
+}
+function closeNameOverlay() {
+  elNameOverlay.classList.remove('open');
+}
+
+document.getElementById('btn-save-preset').addEventListener('click', openNameOverlay);
+document.getElementById('btn-name-cancel').addEventListener('click', closeNameOverlay);
+document.getElementById('btn-name-confirm').addEventListener('click', () => {
+  const name = elPresetNameInput.value.trim();
+  if (!name) return;
+  const list = loadPresets();
+  list.unshift({ name, ...settings });
+  savePresets(list);
+  closeNameOverlay();
+  renderPresets();
+});
+elPresetNameInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('btn-name-confirm').click();
 });
 
 // ── CONTROLS ──────────────────────────────────────────────────────────
