@@ -825,12 +825,14 @@ function render() {
     elTimeDisplay.textContent = formatTime(s.prepare);
     elSetInfo.style.display = s.sets > 1 ? '' : 'none';
     elSetInfo.textContent = `${s.sets} 세트`;
+    elRoundInfo.style.display = s.rounds > 1 ? '' : 'none';
     elRoundInfo.textContent = `${s.rounds} 라운드`;
     elProgressFill.style.width = '0%';
   } else if (p !== PHASES.DONE) {
     elTimeDisplay.textContent = formatTime(timer.remaining);
     elSetInfo.style.display = s.sets > 1 ? '' : 'none';
     elSetInfo.textContent = `세트 ${timer.currentSet || '—'} / ${s.sets}`;
+    elRoundInfo.style.display = s.rounds > 1 ? '' : 'none';
     elRoundInfo.textContent = `라운드 ${timer.currentRound} / ${s.rounds}`;
     const pct = timer.phaseDuration > 0
       ? (1 - timer.remaining / timer.phaseDuration) * 100
