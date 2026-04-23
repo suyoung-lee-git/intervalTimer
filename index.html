@@ -387,7 +387,7 @@
 <body>
 <div id="app">
   <header>
-    <h1 id="main-title">인터벌 타이머</h1>
+    <h1>인터벌 타이머</h1>
     <button id="btn-settings" aria-label="설정">⚙️</button>
   </header>
 
@@ -497,7 +497,7 @@ function savePresets(list) {
 }
 
 function setActivePresetName(name) {
-  document.getElementById('main-title').textContent = name || '인터벌 타이머';
+  PHASE_LABELS[PHASES.WORK] = name || '운동';
 }
 
 function presetDesc(s) {
