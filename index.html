@@ -726,11 +726,17 @@ document.querySelectorAll('.stepper').forEach(el => {
   });
 
   // tap on value → inline edit
-  valEl.addEventListener('click', () => {
+  function activateEdit() {
     valEl.readOnly = false;
     valEl.value = String(settings[key]);
+    valEl.focus();
     valEl.select();
-  });
+  }
+  valEl.addEventListener('touchstart', e => {
+    e.preventDefault();
+    activateEdit();
+  }, { passive: false });
+  valEl.addEventListener('click', activateEdit);
   valEl.addEventListener('blur', () => {
     const v = parseInt(valEl.value, 10);
     if (!isNaN(v)) settings[key] = Math.min(max, Math.max(min, v));
