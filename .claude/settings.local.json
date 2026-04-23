@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mv /home/ssangtuk/icon-192.png /home/ssangtuk/projects/intervalTimer/icon-192.png)",
+      "Bash(mv /home/ssangtuk/icon-512.png /home/ssangtuk/projects/intervalTimer/icon-512.png)"
+    ]
+  }
+}

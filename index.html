@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="인터벌">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>인터벌 타이머</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --color-prepare: #1E90FF;
+    --color-work: #FF3B30;
+    --color-rest: #34C759;
+    --color-round-rest: #FF9500;
+    --color-done: #8E8E93;
+    --color-idle: #1C1C1E;
+    --bg: #000;
+    --surface: #1C1C1E;
+    --text: #FFFFFF;
+    --text-secondary: rgba(255,255,255,0.6);
+    --phase-color: var(--color-idle);
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+    -webkit-text-size-adjust: 100%;
+    overflow: hidden;
+    touch-action: manipulation;
+  }
+
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding-top: max(16px, var(--safe-top));
+    padding-bottom: max(16px, var(--safe-bottom));
+    transition: background-color 0.4s ease;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px 12px;
+    flex-shrink: 0;
+  }
+  header h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.4px; }
+  #btn-settings {
+    background: none; border: none; color: var(--text); cursor: pointer;
+    width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+    border-radius: 12px; font-size: 22px;
+  }
+  #btn-settings:active { background: rgba(255,255,255,0.1); }
+
+  /* MAIN TIMER DISPLAY */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 20px;
+    gap: 8px;
+  }
+
+  #phase-label {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--phase-color);
+    transition: color 0.3s;
+    min-height: 20px;
+  }
+
+  #time-display {
+    font-size: clamp(72px, 22vw, 120px);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -4px;
+    line-height: 1;
+    color: var(--text);
+    transition: color 0.3s;
+  }
+  #time-display.pulse { animation: pulse 0.15s ease; }
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.04); }
+    100% { transform: scale(1); }
+  }
+
+  #set-info {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 1px;
+  }
+  #round-info {
+    font-size: 14px;
+    color: var(--text-secondary);
+    letter-spacing: 1px;
+  }
+
+  /* PROGRESS BAR */
+  #progress-wrap {
+    width: 100%;
+    max-width: 340px;
+    margin-top: 16px;
+  }
+  #progress-bar-bg {
+    height: 6px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  #progress-bar-fill {
+    height: 100%;
+    background: var(--phase-color);
+    border-radius: 3px;
+    width: 0%;
+    transition: width 0.25s linear, background-color 0.3s;
+  }
+
+  /* CONTROLS */
+  footer {
+    display: flex;
+    gap: 12px;
+    padding: 0 20px;
+    flex-shrink: 0;
+  }
+  .btn {
+    flex: 1;
+    height: 56px;
+    border: none;
+    border-radius: 16px;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:active { opacity: 0.7; transform: scale(0.97); }
+
+  #btn-start {
+    background: var(--phase-color);
+    color: #fff;
+    transition: background-color 0.3s;
+  }
+  #btn-reset {
+    background: var(--surface);
+    color: var(--text);
+  }
+
+  /* SETTINGS MODAL */
+  #modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  #modal-overlay.open { opacity: 1; pointer-events: all; }
+
+  #modal {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: #1C1C1E;
+    border-radius: 20px 20px 0 0;
+    padding: 20px 20px max(20px, var(--safe-bottom));
+    z-index: 101;
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+  #modal.open { transform: translateY(0); }
+
+  .modal-handle {
+    width: 36px; height: 5px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 3px;
+    margin: 0 auto 20px;
+  }
+
+  .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 20px; }
+
+  .setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .setting-row:last-of-type { border-bottom: none; }
+
+  .setting-label { font-size: 15px; color: var(--text); }
+  .setting-sub { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+  .stepper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .stepper-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.12);
+    color: var(--text);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.1s;
+  }
+  .stepper-btn:active { background: rgba(255,255,255,0.25); }
+  .stepper-val {
+    min-width: 52px;
+    text-align: center;
+    font-size: 17px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+    background: none; border: none;
+    cursor: pointer;
+  }
+  /* inline edit */
+  .stepper-val:focus {
+    outline: none;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+  }
+
+  #btn-modal-close {
+    width: 100%; height: 50px;
+    margin-top: 20px;
+    border-radius: 14px;
+    border: none;
+    background: var(--color-work);
+    color: #fff;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* DONE STATE */
+  #done-overlay {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: #000;
+    z-index: 50;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.5s;
+  }
+  #done-overlay.show { opacity: 1; pointer-events: all; }
+  #done-overlay .done-emoji { font-size: 72px; margin-bottom: 16px; }
+  #done-overlay .done-text { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+  #done-overlay .done-sub { font-size: 15px; color: var(--text-secondary); margin-bottom: 32px; }
+  #btn-done-reset {
+    padding: 14px 40px;
+    border-radius: 16px;
+    border: none;
+    background: var(--color-work);
+    color: #fff;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>인터벌 타이머</h1>
+    <button id="btn-settings" aria-label="설정">⚙️</button>
+  </header>
+
+  <main>
+    <div id="phase-label">준비</div>
+    <div id="time-display">00:00</div>
+    <div id="set-info">SET — / —</div>
+    <div id="round-info">ROUND — / —</div>
+    <div id="progress-wrap">
+      <div id="progress-bar-bg"><div id="progress-bar-fill"></div></div>
+    </div>
+  </main>
+
+  <footer>
+    <button class="btn" id="btn-reset">초기화</button>
+    <button class="btn" id="btn-start">시작</button>
+  </footer>
+</div>
+
+<!-- Settings Modal -->
+<div id="modal-overlay"></div>
+<div id="modal" role="dialog" aria-modal="true" aria-label="설정">
+  <div class="modal-handle"></div>
+  <div class="modal-title">타이머 설정</div>
+
+  <div class="setting-row">
+    <div><div class="setting-label">준비 시간</div><div class="setting-sub">Prepare</div></div>
+    <div class="stepper" data-key="prepare" data-min="3" data-max="60" data-step="1" data-unit="s"></div>
+  </div>
+  <div class="setting-row">
+    <div><div class="setting-label">운동 시간</div><div class="setting-sub">Work</div></div>
+    <div class="stepper" data-key="work" data-min="5" data-max="300" data-step="5" data-unit="s"></div>
+  </div>
+  <div class="setting-row">
+    <div><div class="setting-label">휴식 시간</div><div class="setting-sub">Rest</div></div>
+    <div class="stepper" data-key="rest" data-min="0" data-max="300" data-step="5" data-unit="s"></div>
+  </div>
+  <div class="setting-row">
+    <div><div class="setting-label">세트 수</div><div class="setting-sub">Sets</div></div>
+    <div class="stepper" data-key="sets" data-min="1" data-max="30" data-step="1" data-unit="회"></div>
+  </div>
+  <div class="setting-row">
+    <div><div class="setting-label">라운드 수</div><div class="setting-sub">Rounds</div></div>
+    <div class="stepper" data-key="rounds" data-min="1" data-max="10" data-step="1" data-unit="회"></div>
+  </div>
+  <div class="setting-row">
+    <div><div class="setting-label">라운드 간 휴식</div><div class="setting-sub">Round Rest</div></div>
+    <div class="stepper" data-key="roundRest" data-min="0" data-max="300" data-step="5" data-unit="s"></div>
+  </div>
+
+  <button id="btn-modal-close">완료</button>
+</div>
+
+<!-- Done overlay -->
+<div id="done-overlay">
+  <div class="done-emoji">🎉</div>
+  <div class="done-text">완료!</div>
+  <div class="done-sub" id="done-summary"></div>
+  <button id="btn-done-reset">다시 시작</button>
+</div>
+
+<script>
+// ── DEFAULTS & STORAGE ──────────────────────────────────────────────
+const DEFAULTS = {
+  prepare: 10, work: 40, rest: 20,
+  sets: 8, rounds: 1, roundRest: 60
+};
+
+function loadSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem('itSettings') || '{}');
+    return { ...DEFAULTS, ...s };
+  } catch { return { ...DEFAULTS }; }
+}
+function saveSettings(s) {
+  localStorage.setItem('itSettings', JSON.stringify(s));
+}
+
+let settings = loadSettings();
+
+// ── AUDIO ────────────────────────────────────────────────────────────
+let audioCtx = null;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function beep(freq, dur, type = 'sine', vol = 0.4) {
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = freq;
+    osc.type = type;
+    gain.gain.setValueAtTime(vol, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + dur);
+  } catch(e) {}
+}
+
+function beepShort() { beep(880, 0.1); }
+function beepLong()  { beep(440, 0.5); }
+function beepDone()  {
+  beep(523, 0.2); // C
+  setTimeout(() => beep(659, 0.2), 200); // E
+  setTimeout(() => beep(784, 0.4), 400); // G
+}
+function beepCountdown(n) {
+  // n: seconds left before phase change
+  if (n > 0) beepShort();
+  else beepLong();
+}
+
+// ── VIBRATION ────────────────────────────────────────────────────────
+function vibrate(pattern) {
+  try { navigator.vibrate && navigator.vibrate(pattern); } catch(e) {}
+}
+
+// ── WAKE LOCK ────────────────────────────────────────────────────────
+let wakeLock = null;
+async function requestWakeLock() {
+  try {
+    if ('wakeLock' in navigator) {
+      wakeLock = await navigator.wakeLock.request('screen');
+    }
+  } catch(e) {}
+}
+function releaseWakeLock() {
+  if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+}
+document.addEventListener('visibilitychange', async () => {
+  if (wakeLock && document.visibilityState === 'visible' && timer.running) {
+    await requestWakeLock();
+  }
+});
+
+// ── TIMER STATE ───────────────────────────────────────────────────────
+const PHASES = { IDLE: 'idle', PREPARE: 'prepare', WORK: 'work', REST: 'rest', ROUND_REST: 'roundRest', DONE: 'done' };
+
+const PHASE_COLORS = {
+  [PHASES.IDLE]: 'var(--color-idle)',
+  [PHASES.PREPARE]: 'var(--color-prepare)',
+  [PHASES.WORK]: 'var(--color-work)',
+  [PHASES.REST]: 'var(--color-rest)',
+  [PHASES.ROUND_REST]: 'var(--color-round-rest)',
+  [PHASES.DONE]: 'var(--color-done)',
+};
+
+const PHASE_LABELS = {
+  [PHASES.IDLE]: '준비',
+  [PHASES.PREPARE]: 'PREPARE',
+  [PHASES.WORK]: 'WORK',
+  [PHASES.REST]: 'REST',
+  [PHASES.ROUND_REST]: 'ROUND REST',
+  [PHASES.DONE]: 'DONE',
+};
+
+const timer = {
+  running: false,
+  phase: PHASES.IDLE,
+  currentSet: 0,
+  currentRound: 1,
+  remaining: 0,       // seconds remaining in current phase
+  phaseDuration: 0,   // total duration of current phase
+  totalElapsed: 0,    // ms elapsed in current phase (precise)
+  lastTick: 0,        // performance.now() at last tick
+  raf: null,
+  countdownBeepedAt: null, // which seconds we already beeped for
+};
+
+function totalWorkDuration() {
+  const s = settings;
+  const perRound = s.prepare + (s.work + s.rest) * s.sets - s.rest;
+  return perRound * s.rounds + s.roundRest * (s.rounds - 1);
+}
+
+function resetTimer() {
+  cancelAnimationFrame(timer.raf);
+  timer.running = false;
+  timer.phase = PHASES.IDLE;
+  timer.currentSet = 0;
+  timer.currentRound = 1;
+  timer.remaining = 0;
+  timer.phaseDuration = 0;
+  timer.totalElapsed = 0;
+  timer.countdownBeepedAt = null;
+  releaseWakeLock();
+  render();
+}
+
+function startPhase(phase) {
+  timer.phase = phase;
+  timer.totalElapsed = 0;
+  timer.countdownBeepedAt = null;
+
+  const s = settings;
+  const dur = {
+    [PHASES.PREPARE]: s.prepare,
+    [PHASES.WORK]: s.work,
+    [PHASES.REST]: s.rest,
+    [PHASES.ROUND_REST]: s.roundRest,
+  }[phase] ?? 0;
+
+  timer.phaseDuration = dur;
+  timer.remaining = dur;
+  render();
+}
+
+function nextPhase() {
+  const s = settings;
+  const p = timer.phase;
+
+  vibrate([80]);
+
+  if (p === PHASES.PREPARE) {
+    timer.currentSet = 1;
+    startPhase(PHASES.WORK);
+  } else if (p === PHASES.WORK) {
+    if (timer.currentSet < s.sets) {
+      startPhase(PHASES.REST);
+    } else {
+      // last set done
+      if (timer.currentRound < s.rounds) {
+        startPhase(PHASES.ROUND_REST);
+      } else {
+        finishTimer();
+      }
+    }
+  } else if (p === PHASES.REST) {
+    timer.currentSet++;
+    startPhase(PHASES.WORK);
+  } else if (p === PHASES.ROUND_REST) {
+    timer.currentRound++;
+    timer.currentSet = 1;
+    startPhase(PHASES.WORK);
+  }
+}
+
+function finishTimer() {
+  timer.running = false;
+  timer.phase = PHASES.DONE;
+  cancelAnimationFrame(timer.raf);
+  releaseWakeLock();
+  beepDone();
+  vibrate([100, 80, 100, 80, 200]);
+  showDone();
+  render();
+}
+
+function tick(now) {
+  if (!timer.running) return;
+
+  // iOS background tab compensation
+  if (document.hidden) {
+    timer.lastTick = now;
+    timer.raf = requestAnimationFrame(tick);
+    return;
+  }
+
+  const delta = now - timer.lastTick;
+  timer.lastTick = now;
+  timer.totalElapsed += delta;
+
+  const elapsedSec = timer.totalElapsed / 1000;
+  const remaining = Math.max(0, timer.phaseDuration - elapsedSec);
+  const prevRemaining = timer.remaining;
+  timer.remaining = remaining;
+
+  // countdown beeps: 3, 2, 1 before end
+  const remInt = Math.ceil(remaining);
+  if (remInt <= 3 && remInt > 0 && remInt !== timer.countdownBeepedAt) {
+    timer.countdownBeepedAt = remInt;
+    beepShort();
+  }
+
+  render();
+
+  if (remaining <= 0) {
+    beepLong();
+    nextPhase();
+  }
+
+  if (timer.running) {
+    timer.raf = requestAnimationFrame(tick);
+  }
+}
+
+function startOrPause() {
+  if (timer.phase === PHASES.DONE) return;
+
+  // unlock audio on first gesture
+  getAudioCtx();
+
+  if (!timer.running) {
+    if (timer.phase === PHASES.IDLE) {
+      timer.currentSet = 0;
+      timer.currentRound = 1;
+      startPhase(PHASES.PREPARE);
+    }
+    timer.running = true;
+    timer.lastTick = performance.now();
+    requestWakeLock();
+    timer.raf = requestAnimationFrame(tick);
+  } else {
+    timer.running = false;
+    cancelAnimationFrame(timer.raf);
+    releaseWakeLock();
+  }
+  render();
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────
+const elApp = document.getElementById('app');
+const elPhaseLabel = document.getElementById('phase-label');
+const elTimeDisplay = document.getElementById('time-display');
+const elSetInfo = document.getElementById('set-info');
+const elRoundInfo = document.getElementById('round-info');
+const elProgressFill = document.getElementById('progress-bar-fill');
+const elBtnStart = document.getElementById('btn-start');
+
+function formatTime(sec) {
+  const s = Math.ceil(sec);
+  if (s < 60) return String(s).padStart(2, '0');
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
+}
+
+function render() {
+  const p = timer.phase;
+  const color = PHASE_COLORS[p] || 'var(--color-idle)';
+  const s = settings;
+
+  document.documentElement.style.setProperty('--phase-color', color);
+
+  elPhaseLabel.textContent = PHASE_LABELS[p] || '';
+
+  if (p === PHASES.IDLE) {
+    elTimeDisplay.textContent = formatTime(s.prepare);
+    elSetInfo.textContent = `${s.sets} 세트`;
+    elRoundInfo.textContent = `${s.rounds} 라운드`;
+    elProgressFill.style.width = '0%';
+  } else if (p !== PHASES.DONE) {
+    elTimeDisplay.textContent = formatTime(timer.remaining);
+    elSetInfo.textContent = `SET ${timer.currentSet || '—'} / ${s.sets}`;
+    elRoundInfo.textContent = `ROUND ${timer.currentRound} / ${s.rounds}`;
+    const pct = timer.phaseDuration > 0
+      ? (1 - timer.remaining / timer.phaseDuration) * 100
+      : 100;
+    elProgressFill.style.width = `${Math.min(100, pct)}%`;
+  }
+
+  // start button label
+  if (p === PHASES.IDLE || !timer.running) {
+    elBtnStart.textContent = p === PHASES.IDLE ? '시작' : '재개';
+  } else {
+    elBtnStart.textContent = '일시정지';
+  }
+
+  elBtnStart.disabled = p === PHASES.DONE;
+}
+
+// ── DONE OVERLAY ──────────────────────────────────────────────────────
+const elDoneOverlay = document.getElementById('done-overlay');
+const elDoneSummary = document.getElementById('done-summary');
+
+function showDone() {
+  const s = settings;
+  elDoneSummary.textContent = `${s.rounds}라운드 × ${s.sets}세트 완료 🔥`;
+  elDoneOverlay.classList.add('show');
+}
+
+document.getElementById('btn-done-reset').addEventListener('click', () => {
+  elDoneOverlay.classList.remove('show');
+  resetTimer();
+});
+
+// ── SETTINGS MODAL ────────────────────────────────────────────────────
+const elModal = document.getElementById('modal');
+const elModalOverlay = document.getElementById('modal-overlay');
+
+function openModal() {
+  if (timer.running) { timer.running = false; cancelAnimationFrame(timer.raf); releaseWakeLock(); render(); }
+  elModal.classList.add('open');
+  elModalOverlay.classList.add('open');
+}
+function closeModal() {
+  elModal.classList.remove('open');
+  elModalOverlay.classList.remove('open');
+  saveSettings(settings);
+  resetTimer();
+}
+
+document.getElementById('btn-settings').addEventListener('click', openModal);
+document.getElementById('btn-modal-close').addEventListener('click', closeModal);
+elModalOverlay.addEventListener('click', closeModal);
+
+// Build steppers
+document.querySelectorAll('.stepper').forEach(el => {
+  const key = el.dataset.key;
+  const min = Number(el.dataset.min);
+  const max = Number(el.dataset.max);
+  const step = Number(el.dataset.step);
+  const unit = el.dataset.unit;
+
+  const valEl = document.createElement('input');
+  valEl.type = 'text';
+  valEl.inputMode = 'numeric';
+  valEl.className = 'stepper-val';
+  valEl.readOnly = true;
+
+  const minus = document.createElement('button');
+  minus.className = 'stepper-btn';
+  minus.textContent = '−';
+  minus.setAttribute('aria-label', `${key} 감소`);
+
+  const plus = document.createElement('button');
+  plus.className = 'stepper-btn';
+  plus.textContent = '+';
+  plus.setAttribute('aria-label', `${key} 증가`);
+
+  function updateDisplay() {
+    const v = settings[key];
+    valEl.value = unit === 's' ? formatTime(v) : `${v}${unit}`;
+  }
+
+  minus.addEventListener('click', () => {
+    settings[key] = Math.max(min, settings[key] - step);
+    updateDisplay();
+  });
+  plus.addEventListener('click', () => {
+    settings[key] = Math.min(max, settings[key] + step);
+    updateDisplay();
+  });
+
+  // tap on value → inline edit
+  valEl.addEventListener('click', () => {
+    valEl.readOnly = false;
+    valEl.value = String(settings[key]);
+    valEl.select();
+  });
+  valEl.addEventListener('blur', () => {
+    const v = parseInt(valEl.value, 10);
+    if (!isNaN(v)) settings[key] = Math.min(max, Math.max(min, v));
+    valEl.readOnly = true;
+    updateDisplay();
+  });
+  valEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter') valEl.blur();
+  });
+
+  el.appendChild(minus);
+  el.appendChild(valEl);
+  el.appendChild(plus);
+  updateDisplay();
+});
+
+// ── CONTROLS ──────────────────────────────────────────────────────────
+document.getElementById('btn-start').addEventListener('click', startOrPause);
+document.getElementById('btn-reset').addEventListener('click', resetTimer);
+
+// Visibility change: correct elapsed time
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && timer.running) {
+    timer.lastTick = performance.now();
+  }
+});
+
+// ── INIT ──────────────────────────────────────────────────────────────
+resetTimer();
+
+// Service Worker registration
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
