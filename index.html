@@ -312,27 +312,27 @@
   <div class="modal-title">타이머 설정</div>
 
   <div class="setting-row">
-    <div><div class="setting-label">준비 시간</div><div class="setting-sub">Prepare</div></div>
+    <div><div class="setting-label">준비 시간</div><div class="setting-sub">운동 시작 전 준비</div></div>
     <div class="stepper" data-key="prepare" data-min="3" data-max="60" data-step="1" data-unit="s"></div>
   </div>
   <div class="setting-row">
-    <div><div class="setting-label">운동 시간</div><div class="setting-sub">Work</div></div>
+    <div><div class="setting-label">운동 시간</div><div class="setting-sub">세트당 운동 시간</div></div>
     <div class="stepper" data-key="work" data-min="5" data-max="300" data-step="5" data-unit="s"></div>
   </div>
   <div class="setting-row">
-    <div><div class="setting-label">휴식 시간</div><div class="setting-sub">Rest</div></div>
+    <div><div class="setting-label">휴식 시간</div><div class="setting-sub">세트 간 휴식</div></div>
     <div class="stepper" data-key="rest" data-min="0" data-max="300" data-step="5" data-unit="s"></div>
   </div>
   <div class="setting-row">
-    <div><div class="setting-label">세트 수</div><div class="setting-sub">Sets</div></div>
+    <div><div class="setting-label">세트 수</div><div class="setting-sub">라운드당 세트</div></div>
     <div class="stepper" data-key="sets" data-min="1" data-max="30" data-step="1" data-unit="회"></div>
   </div>
   <div class="setting-row">
-    <div><div class="setting-label">라운드 수</div><div class="setting-sub">Rounds</div></div>
+    <div><div class="setting-label">라운드 수</div><div class="setting-sub">총 라운드</div></div>
     <div class="stepper" data-key="rounds" data-min="1" data-max="10" data-step="1" data-unit="회"></div>
   </div>
   <div class="setting-row">
-    <div><div class="setting-label">라운드 간 휴식</div><div class="setting-sub">Round Rest</div></div>
+    <div><div class="setting-label">라운드 간 휴식</div><div class="setting-sub">라운드 사이 휴식</div></div>
     <div class="stepper" data-key="roundRest" data-min="0" data-max="300" data-step="5" data-unit="s"></div>
   </div>
 
@@ -440,11 +440,11 @@ const PHASE_COLORS = {
 
 const PHASE_LABELS = {
   [PHASES.IDLE]: '준비',
-  [PHASES.PREPARE]: 'PREPARE',
-  [PHASES.WORK]: 'WORK',
-  [PHASES.REST]: 'REST',
-  [PHASES.ROUND_REST]: 'ROUND REST',
-  [PHASES.DONE]: 'DONE',
+  [PHASES.PREPARE]: '준비',
+  [PHASES.WORK]: '운동',
+  [PHASES.REST]: '휴식',
+  [PHASES.ROUND_REST]: '라운드 휴식',
+  [PHASES.DONE]: '완료',
 };
 
 const timer = {
@@ -634,8 +634,8 @@ function render() {
     elProgressFill.style.width = '0%';
   } else if (p !== PHASES.DONE) {
     elTimeDisplay.textContent = formatTime(timer.remaining);
-    elSetInfo.textContent = `SET ${timer.currentSet || '—'} / ${s.sets}`;
-    elRoundInfo.textContent = `ROUND ${timer.currentRound} / ${s.rounds}`;
+    elSetInfo.textContent = `세트 ${timer.currentSet || '—'} / ${s.sets}`;
+    elRoundInfo.textContent = `라운드 ${timer.currentRound} / ${s.rounds}`;
     const pct = timer.phaseDuration > 0
       ? (1 - timer.remaining / timer.phaseDuration) * 100
       : 100;
