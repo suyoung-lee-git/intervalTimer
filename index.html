@@ -392,15 +392,18 @@ function beep(freq, dur, type = 'sine', vol = 0.4) {
 
 function beepShort() { beep(880, 0.1); }
 function beepLong()  { beep(440, 0.5); }
-function beepDone()  {
-  beep(523, 0.2); // C
-  setTimeout(() => beep(659, 0.2), 200); // E
-  setTimeout(() => beep(784, 0.4), 400); // G
+function beepWork() {
+  beep(880, 0.12, 'square', 0.35);
+  setTimeout(() => beep(1100, 0.18, 'square', 0.35), 150);
 }
-function beepCountdown(n) {
-  // n: seconds left before phase change
-  if (n > 0) beepShort();
-  else beepLong();
+function beepRest() {
+  beep(520, 0.15, 'sine', 0.35);
+  setTimeout(() => beep(390, 0.35, 'sine', 0.3), 160);
+}
+function beepDone()  {
+  beep(523, 0.2);
+  setTimeout(() => beep(659, 0.2), 200);
+  setTimeout(() => beep(784, 0.4), 400);
 }
 
 // ── VIBRATION ────────────────────────────────────────────────────────
@@ -506,13 +509,15 @@ function nextPhase() {
 
   if (p === PHASES.PREPARE) {
     timer.currentSet = 1;
+    beepWork();
     startPhase(PHASES.WORK);
   } else if (p === PHASES.WORK) {
     if (timer.currentSet < s.sets) {
+      beepRest();
       startPhase(PHASES.REST);
     } else {
-      // last set done
       if (timer.currentRound < s.rounds) {
+        beepRest();
         startPhase(PHASES.ROUND_REST);
       } else {
         finishTimer();
@@ -520,10 +525,12 @@ function nextPhase() {
     }
   } else if (p === PHASES.REST) {
     timer.currentSet++;
+    beepWork();
     startPhase(PHASES.WORK);
   } else if (p === PHASES.ROUND_REST) {
     timer.currentRound++;
     timer.currentSet = 1;
+    beepWork();
     startPhase(PHASES.WORK);
   }
 }
@@ -568,7 +575,6 @@ function tick(now) {
   render();
 
   if (remaining <= 0) {
-    beepLong();
     nextPhase();
   }
 
