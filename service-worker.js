@@ -1,5 +1,5 @@
-const CACHE = 'interval-timer-v2';
-const ASSETS = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png'];
+const CACHE = 'interval-timer-v3';
+const ASSETS = ['/intervalTimer/', '/intervalTimer/index.html', '/intervalTimer/manifest.json', '/intervalTimer/icon-192.png', '/intervalTimer/icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(
