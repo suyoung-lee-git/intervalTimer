@@ -386,31 +386,28 @@
   /* SILENT MODE BANNER */
   #silent-banner {
     display: none;
-    position: fixed;
-    top: max(12px, var(--safe-top));
-    left: 16px;
-    right: 16px;
-    background: rgba(255, 159, 10, 0.15);
-    border: 1px solid rgba(255, 159, 10, 0.4);
-    border-radius: 12px;
-    padding: 10px 14px;
-    z-index: 999;
+    margin: 0 16px 4px;
+    background: rgba(255, 159, 10, 0.12);
+    border: 1px solid rgba(255, 159, 10, 0.35);
+    border-radius: 10px;
+    padding: 8px 12px;
     flex-direction: row;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    flex-shrink: 0;
   }
   #silent-banner.visible { display: flex; }
   #silent-banner span {
     flex: 1;
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.85);
+    font-size: 12px;
+    color: rgba(255, 200, 100, 0.9);
     line-height: 1.4;
   }
   #silent-banner button {
     background: none;
     border: none;
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 18px;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 16px;
     line-height: 1;
     padding: 2px 4px;
     cursor: pointer;
@@ -419,10 +416,6 @@
 </style>
 </head>
 <body>
-<div id="silent-banner">
-  <span>🔔 무음 모드에서는 소리가 나지 않습니다</span>
-  <button id="btn-silent-dismiss" aria-label="닫기">✕</button>
-</div>
 <div id="app">
   <header>
     <div>
@@ -431,6 +424,11 @@
     </div>
     <button id="btn-settings" aria-label="설정">⚙️</button>
   </header>
+
+  <div id="silent-banner">
+    <span>🔔 무음 모드에서는 소리가 나지 않습니다</span>
+    <button id="btn-silent-dismiss" aria-label="닫기">✕</button>
+  </div>
 
   <main>
     <div id="phase-label">준비</div>
