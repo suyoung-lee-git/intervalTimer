@@ -383,9 +383,46 @@
     font-weight: 600;
     cursor: pointer;
   }
+  /* SILENT MODE BANNER */
+  #silent-banner {
+    display: none;
+    position: fixed;
+    top: max(12px, var(--safe-top));
+    left: 16px;
+    right: 16px;
+    background: rgba(255, 159, 10, 0.15);
+    border: 1px solid rgba(255, 159, 10, 0.4);
+    border-radius: 12px;
+    padding: 10px 14px;
+    z-index: 999;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+  }
+  #silent-banner.visible { display: flex; }
+  #silent-banner span {
+    flex: 1;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.85);
+    line-height: 1.4;
+  }
+  #silent-banner button {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 18px;
+    line-height: 1;
+    padding: 2px 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
 </style>
 </head>
 <body>
+<div id="silent-banner">
+  <span>🔔 무음 모드에서는 소리가 나지 않습니다</span>
+  <button id="btn-silent-dismiss" aria-label="닫기">✕</button>
+</div>
 <div id="app">
   <header>
     <div>
@@ -997,6 +1034,15 @@ document.addEventListener('visibilitychange', () => {
     timer.lastTick = performance.now();
   }
 });
+
+// ── SILENT MODE BANNER (iOS only) ────────────────────────────────────
+const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+if (isIOS) {
+  document.getElementById('silent-banner').classList.add('visible');
+  document.getElementById('btn-silent-dismiss').addEventListener('click', () => {
+    document.getElementById('silent-banner').classList.remove('visible');
+  });
+}
 
 // ── INIT ──────────────────────────────────────────────────────────────
 resetTimer();
